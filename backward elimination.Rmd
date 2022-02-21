@@ -1,0 +1,133 @@
+```{r}
+
+
+library(leaps)
+library(MASS)
+set.seed(1980)
+n=100
+p=10
+sigma=1.5
+rho=.75
+beta=c(1,-1,2,0,0,0,-2,0,1,0)
+REP=200
+mux=rep(0,p)
+sigmax=matrix(NA,p,p)
+for ( i in seq_len(p)) {
+  for (j in seq_len(p)){
+    sigmax[i,j]=rho^abs(i-j)
+    
+  }
+}
+x=mvrnorm(n,mux,sigmax)
+y=matrix(0,nrow=n,ncol=REP)
+for (r in seq_len(REP)){
+  y[,r]=x%*%beta+rnorm(n)*sigma
+}
+
+
+fit=lm(y~x-1)
+d=fit$coefficients
+beta.matrix=as.matrix(d)
+### sensitivity and speci
+betals= matrix(0, nrow = REP, ncol = p)
+for (r in 1:REP) {
+  betals[r,] = solve(t(x)%*%x) %*% t(x) %*% y[,r]
+} 
+
+colMeans(betals)
+
+
+
+betaols = -1*(betals<0)
+betaols[betaols==0] = 1
+
+temp1 = abs(betals)
+temp1[temp1<.20] = 0 
+
+betaols = betaols*temp1
+
+tPos = betaols[,beta!=0] != 0 
+
+fPos = betaols[,beta==0] != 0 
+
+tNeg = betaols[,beta==0] == 0 
+fNeg = betaols[,beta!=0] == 0
+SEn = apply(tPos, 1, sum)/(apply(tPos, 1, sum)+ apply(fNeg, 1, sum))
+mean(SEn)*100
+
+SPe = apply(tNeg, 1, sum)/(apply(tNeg, 1, sum)+ apply(fPos, 1, sum))
+mean(SPe)*100
+
+### mse of beta
+beta.mean=apply(beta.matrix,1,mean)
+estimation.bias <- beta.mean - beta
+beta.var <- apply(beta.matrix,1,var)
+beta.mse <- estimation.bias^2 + beta.var
+beta.mse
+### mse of sigma
+si=sigma(fit)
+si.mean=mean(si)
+si.var=var(si)
+si.bias <- si.mean - sigma
+sigma.mse <- si.bias^2 + si.var
+sigma.mse
+
+###backward elimination
+back1<-stepAIC(lm(y[,2]~x[,1]+x[,2]+x[,3]+x[,4]+x[,5]+x[,6]+x[,7]+x[,8]+x[,9]+x[,10]),y[,2]~1, direction ="backward")
+d1=as.matrix(back1$coefficients)
+beta1=c(-1,2,0,0,0,0)
+x1=x[,-c(1,6,7,9)]
+p1=6
+fit2=lm(y~x1-1)
+
+d=fit2$coefficients
+beta.matrix=as.matrix(d)
+### sensitivity and speci
+betals= matrix(0, nrow = REP, ncol = p1)
+for (r in 1:REP) {
+  betals[r,] = solve(t(x1)%*%x1) %*% t(x1) %*% y[,r]
+} 
+
+colMeans(betals)
+
+
+
+betaols = -1*(betals<0)
+betaols[betaols==0] = 1
+
+temp1 = abs(betals)
+temp1[temp1<.45] = 0 
+
+betaols = betaols*temp1
+
+
+
+tPos = betaols[,beta1!=0] != 0 
+
+fPos = betaols[,beta1==0] != 0 
+
+tNeg = betaols[,beta1==0] == 0 
+fNeg = betaols[,beta1!=0] == 0
+SEn = apply(tPos, 1, sum)/(apply(tPos, 1, sum)+ apply(fNeg, 1, sum))
+mean(SEn)*100
+
+SPe = apply(tNeg, 1, sum)/(apply(tNeg, 1, sum)+ apply(fPos, 1, sum))
+mean(SPe)*100
+
+### mse of beta
+beta.mean=apply(beta.matrix,1,mean)
+estimation.bias <- beta.mean - beta1
+beta.var <- apply(beta.matrix,1,var)
+beta.mse <- estimation.bias^2 + beta.var
+beta.mse
+### mse of sigma
+si=sigma(fit)
+si.mean=mean(si)
+si.var=var(si)
+si.bias <- si.mean - sigma
+sigma.mse <- si.bias^2 + si.var
+sigma.mse
+
+
+
+```
